@@ -365,7 +365,7 @@ int main()
     }
 
     vector<string> vec[23]; //change depending on the value of attlen (so the number of different attributes)
-    ifstream myfile("agaricus-lepiota.data");
+    ifstream myfile(fname);
 
     vector<string> v1;
 
