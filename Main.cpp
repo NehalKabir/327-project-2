@@ -368,7 +368,7 @@ int main()
 
     myfile.close();
 
-  double ent = gain(2, 1);
+  double ent = gain(2, 0);
   cout << "gain: " << ent << endl;
 
 
