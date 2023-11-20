@@ -10,12 +10,14 @@
 #include <sstream>
 #include <vector>
 #include <tuple>
+#include <unordered_map>
 
 #define MAX_EXAMPLES 100
 #define MAX_ATTRIBUTES 10
 #define MAX_LABEL_LEN 10
 
 using namespace std;
+string fname = "agaricus-lepiota.data";
 
 typedef struct {
     char attributes[MAX_ATTRIBUTES][MAX_LABEL_LEN];
@@ -204,6 +206,84 @@ void with_separator(const vector<S>& vec,
     cout << endl;
 }
 
+
+double info(const vector<string>& data) {
+    unordered_map<string, int> frequency;
+    int dataSize = data.size();
+
+    // Count occurrences of each unique string
+    for (const string& value : data) {
+        frequency[value]++;
+    }
+
+    double iv = 0.0;
+
+    // Calculate probability and entropy for each unique string
+    for (const auto& pair : frequency) {
+        double probability = static_cast<double>(pair.second) / dataSize;
+        iv -= probability * log2(probability);
+    }
+
+    return iv;
+}
+
+
+
+vector<vector<string>> tupp(const string& filename) {
+    vector< vector<string>> result;
+
+    // Open the file
+    ifstream inputFile(filename);
+    if (!inputFile.is_open()) {
+        cerr << "Error opening file: " << filename << endl;
+        return result; // Return an empty vector on error
+    }
+
+    // Read each line from the file
+    string line;
+    while (getline(inputFile, line)) {
+        
+        string nthString;
+        istringstream iss(line);
+        vector<string> restOfStrings;
+
+        // Tokenize the line by spaces
+        int i = 0;
+        string token;
+        while (getline(iss, token, ',')) {
+
+            restOfStrings.push_back(token);
+
+        }
+
+        // Create a tuple and add it to the result vector
+        result.push_back(restOfStrings);
+    }
+
+    // Close the file
+    inputFile.close();
+
+    return result;
+}
+
+vector<string> col(const string& filename, int co) {
+    vector<vector<string>> st = tupp(filename);
+    int size = st.size();
+    vector<string> result;
+    for (int i = 0; i < size; i++) {
+        result.push_back(st[i][co]);
+    }
+    return result;
+
+}
+
+double gain(int A, int pi) {
+    double i1 = info(col(fname, A));
+    double i2 = info(col(fname, pi));
+    double g = i2 - i1;
+    return g;
+}
+
 int main()
 {
     DataPoint D[MAX_EXAMPLES];  // Sample data
@@ -287,6 +367,10 @@ int main()
     cout << data << endl;
 
     myfile.close();
-    
+
+  double ent = gain(2, 1);
+  cout << "gain: " << ent << endl;
+
+
 
 }
