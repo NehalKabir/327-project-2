@@ -222,10 +222,13 @@ double info(const vector<string>& data) {
     for (const auto& pair : frequency) {
         double probability = static_cast<double>(pair.second) / dataSize;
         iv -= probability * log2(probability);
+        //cout <<"prob: " << probability << endl;
     }
-
+    //cout <<"info: " <<  iv << endl;
     return iv;
 }
+
+
 
 
 
@@ -277,12 +280,47 @@ vector<string> col(const string& filename, int co) {
 
 }
 
-double gain(int A, int pi) {
-    double i1 = info(col(fname, A));
+
+vector<string> col2(const string& filename, int co, string pi, int p) {
+    vector<vector<string>> st = tupp(filename);
+    int size = st.size();
+    vector<string> result;
+    for (int i = 0; i < size; i++) {
+        if (st[i][co] == pi) {
+            result.push_back(st[i][p]);
+        }
+    }
+    return result;
+
+}
+
+double info2(const vector<string>& data, int co, int p, vector<string>* vec) {
+    unordered_map<string, int> frequency;
+    double result = 0;
+    int size = data.size();
+    for (const string& value : data) {
+            frequency[value]++;
+        }
+    
+    for (const auto& pair : frequency) {
+        double prob = static_cast<double>(pair.second) / size;
+        vector<string> c2 = col2(fname, co, pair.first, p);
+        double i1 = info(c2);
+        result += prob * i1;
+        //cout << "result: " <<result << endl;
+        //cout << prob << endl << "i1: " << i1 << endl;
+    }
+    return result;
+}
+
+double gain(int A, int pi, vector<string>* vec) {
+    double i1 = info2(col(fname, A), A,pi, vec);
     double i2 = info(col(fname, pi));
+    //cout << i1 << " " << i2;
     double g = i2 - i1;
     return g;
 }
+
 
 int main()
 {
@@ -368,8 +406,9 @@ int main()
 
     myfile.close();
 
-  double ent = gain(2, 0);
-  cout << "gain: " << ent << endl;
+  
+    double g = gain(0, 4, vec);
+    cout << "gain: " << g << endl;
 
 
 
