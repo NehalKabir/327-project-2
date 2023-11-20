@@ -148,27 +148,27 @@ void print_tree(TreeNode* node, int level) {
     }
 }
 
-std::vector<std::tuple<std::string, std::vector<std::string>>> getDTuple(const std::string& filename, int N) {
-    std::vector<std::tuple<std::string, std::vector<std::string>>> result;
+vector<tuple<string, vector<string>>> getDTuple(const string& filename, int N) {
+    vector<tuple<string, vector<string>>> result;
 
     // Open the file
-    std::ifstream inputFile(filename);
+    ifstream inputFile(filename);
     if (!inputFile.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
+        cerr << "Error opening file: " << filename << endl;
         return result; // Return an empty vector on error
     }
 
     // Read each line from the file
-    std::string line;
-    while (std::getline(inputFile, line)) {
-        std::istringstream iss(line);
-        std::string nthString;
-        std::vector<std::string> restOfStrings;
+    string line;
+    while (getline(inputFile, line)) {
+        istringstream iss(line);
+        string nthString;
+        vector<string> restOfStrings;
 
         // Tokenize the line by spaces
         int i = 0;
-        std::string token;
-        while (std::getline(iss, token, ',')) {
+        string token;
+        while (getline(iss, token, ',')) {
             if (i == N) {
                 nthString = token;
             }
@@ -179,7 +179,7 @@ std::vector<std::tuple<std::string, std::vector<std::string>>> getDTuple(const s
         }
 
         // Create a tuple and add it to the result vector
-        result.push_back(std::make_tuple(nthString, restOfStrings));
+        result.push_back(make_tuple(nthString, restOfStrings));
     }
 
     // Close the file
