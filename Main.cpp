@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <math.h>
 #include <fstream>
 #include <sstream>
@@ -14,6 +14,8 @@
 #define MAX_EXAMPLES 100
 #define MAX_ATTRIBUTES 10
 #define MAX_LABEL_LEN 10
+
+using namespace std;
 
 typedef struct {
     char attributes[MAX_ATTRIBUTES][MAX_LABEL_LEN];
