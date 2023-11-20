@@ -116,6 +116,21 @@ std::vector<std::tuple<std::string, std::vector<std::string>>> getDTuple(const s
     return result;
 }
 
+template <typename S>
+
+// with_separator() function accepts
+// two  arguments i.e., a vector and
+// a separator string
+void with_separator(const vector<S>& vec,
+    string sep = " ")
+{
+    // Iterating over all elements of vector
+    for (auto elem : vec) {
+        cout << elem << sep;
+    }
+
+    cout << endl;
+}
 
 int main()
 {
@@ -155,4 +170,48 @@ int main()
         }
         std::cout << std::endl;
     }
+
+    vector<string> vec[23]; //change depending on the value of attlen (so the number of different attributes)
+    ifstream myfile("agaricus-lepiota.data");
+
+    vector<string> v1;
+
+    string data;
+    getline(myfile, data);
+    char f='\0';
+    int d = strlen(data.c_str());
+    int attlen = d / 2 + 1;
+    int ff = 0;
+    myfile.seekg(0);
+
+    while (getline(myfile, data)) {
+        for (int i = 0; i < d; i++) {
+            string temp = "";
+            string w;
+
+            w = data[i];
+            while (strcmp(w.c_str(), ",") && strcmp(w.c_str(), "\0")) {
+                temp.append(w);
+                i++;
+                w = data[i];
+            }
+            if (find(vec[ff].begin(), vec[ff].end(), temp) == vec[ff].end())
+            {
+                vec[ff].push_back(temp);
+            }
+
+            temp = "";
+            ff++;
+        }
+        ff = 0;
+    }
+
+    with_separator(vec[1], ", ");
+ 
+    getline(myfile, data);
+    cout << data << endl;
+
+    myfile.close();
+    
+
 }
