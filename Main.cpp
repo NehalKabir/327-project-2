@@ -39,6 +39,76 @@ TreeNode* create_node() {
     }
     return node;
 }
+// Function to check if all tuples in D are of the same class
+int are_all_same_class(DataPoint* D, int num_tuples) {
+    // Implement this function based on your data structure and class representation
+    // Return 1 if all tuples are of the same class, 0 otherwise
+    if (num_tuples <= 1) {
+        return 1;//1 or 0 tuples then same class
+    }
+    // Compare the class label of the first tuple with the class labels of the rest
+    for (int i = 1; i < num_tuples; i++) {
+        if (strcmp(D[0].label, D[i].label) != 0) {
+            // If any class label is different, return 0
+            return 0;
+        }
+    }
+    //if all class labels same return 1
+    return 1;
+}
+
+// Function to find the majority class in D
+char find_majority_class(DataPoint* D, int num_tuples) {
+    if (num_tuples <= 0) {
+        // Handle the case when there are no tuples
+        // You may return a default or error value based on your requirements
+        return '\0'; // Return null character for simplicity
+    }
+
+    // Assuming the class labels are strings, you can use an array to store counts
+    int label_counts[MAX_LABEL_LEN] = { 0 };
+
+    // Count the occurrences of each class label
+    for (int i = 0; i < num_tuples; i++) {
+        label_counts[D[i].label[0]]++; // Assuming class labels are single characters
+    }
+
+    // Find the class label with the maximum count
+    char majority_class = D[0].label[0]; // Default to the first label
+    int max_count = label_counts[majority_class];
+
+    for (int i = 1; i < MAX_LABEL_LEN; i++) {
+        if (label_counts[i] > max_count) {
+            majority_class = (char)i;
+            max_count = label_counts[i];
+        }
+    }
+
+    return majority_class;
+}
+
+// Function to implement the decision tree construction algorithm
+TreeNode* generate_decision_tree(DataPoint* D, int num_tuples, int num_attributes) {
+    TreeNode* node = create_node();
+
+    // Step (2): Check if tuples in D are all of the same class
+    if (are_all_same_class(D, num_tuples)) {
+        // Step (3): Return N as a leaf node labeled with the class C
+        node->predicted_label[0] = D[0].label[0];
+        node->predicted_label[1] = '\0'; // Null-terminate the string
+        node->is_leaf = 1;
+        return node;
+    }
+
+    // Step (4): If attribute list is empty
+    if (num_attributes == 0) {
+        // Step (5): Return N as a leaf node labeled with the majority class in D
+        node->predicted_label[0] = find_majority_class(D, num_tuples);
+        node->predicted_label[1] = '\0'; // Null-terminate the string
+        node->is_leaf = 1;
+        return node;
+    }
+}
 
 
 void print_node(TreeNode* node, int level) {
@@ -134,6 +204,9 @@ void with_separator(const vector<S>& vec,
 
 int main()
 {
+    DataPoint D[MAX_EXAMPLES];  // Sample data
+    int num_tuples = 100;  // Number of tuples in D
+    int num_attributes = 10;  // Number of attributes
     TreeNode* root = create_node();  // Create the root node
     root->attribute_index = 0;       // Set the attribute index (for decision)
     strcpy(root->attribute_value, "Attribute_0_Value");  // Set the attribute value
