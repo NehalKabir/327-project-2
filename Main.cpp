@@ -173,15 +173,18 @@ template <typename S>
 // with_separator() function accepts
 // two  arguments i.e., a vector and
 // a separator string
-void with_separator(const vector<S>& vec,
+vector<string> with_separator(const vector<S>& vec,
     string sep = " ")
 {
+    vector<string> lst;
     // Iterating over all elements of vector
     for (auto elem : vec) {
+        lst.push_back(elem);
         cout << elem << sep;
     }
 
     cout << endl;
+    return lst;
 }
 
 
@@ -297,6 +300,8 @@ double info2(const vector<string>& data, int co, int p) {
 //A is the attribute we want to find the gain of
 //pi is the class attribute
 double gain(int A, int pi) {
+    if (A == pi)
+        return -2;
     double i1 = info2(col(fname, A), A, pi);
     double i2 = info(col(fname, pi));
     //cout << i1 << " " << i2;
@@ -305,14 +310,14 @@ double gain(int A, int pi) {
 }
 
 // Helper function to create branches in the decision tree
-void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes) {
+void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes, vector<string> vec[23]) {
     // Check if the current node is a leaf node
     if (node->is_leaf) {
         return;
     }
 
     // Get the attribute values for the chosen attribute
-    vector<string> attribute_values = col(fname, node->attribute_index);
+    vector<string> attribute_values = with_separator(vec[node->attribute_index]);
 
     // Create child nodes for each attribute value
     for (size_t i = 0; i < attribute_values.size(); i++) {
@@ -337,7 +342,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
         }
         else {
             // Recursively create branches for the child node
-            create_branches(child_node, subset_D, num_attributes - 1);
+            create_branches(child_node, subset_D, num_attributes - 1, vec);
         }
 
         // Connect the child node to the current node using array indexing
@@ -346,7 +351,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
 }
 
 // Function to implement the decision tree construction algorithm
-TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList) {
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]) {
     TreeNode* node = create_node();
 
     // Step (2): Check if tuples in D are all of the same class
@@ -383,7 +388,7 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     node->attribute_index = best_attribute;
 
     // Create branches for the decision tree
-    create_branches(node, D, attrList.size());
+    create_branches(node, D, attrList.size(), vec);
 
     // ...
 
@@ -438,8 +443,7 @@ int main()
     cout << data << endl;
 
     myfile.close();
-
-    TreeNode* DecTree = generate_decision_tree(D, attrList);
+    TreeNode* DecTree = generate_decision_tree(D, attrList, vec);
 
 }
 
