@@ -353,7 +353,7 @@ int main()
 
     // Example usage:
     std::vector<std::tuple<std::string, std::vector<std::string>>> result =
-        getDTuple("car.data", 6);
+        getDTuple(fname, 0);
 
     // Display the result
     for (const auto& tuple : result) {
