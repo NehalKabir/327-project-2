@@ -206,7 +206,8 @@ void with_separator(const vector<S>& vec,
     cout << endl;
 }
 
-
+//counts the number of occurences of each string for the column inputed, then divide that by the total line in that column
+//then do that for all the different strings, and add the value together, that is the info
 double info(const vector<string>& data) {
     unordered_map<string, int> frequency;
     int dataSize = data.size();
@@ -228,10 +229,7 @@ double info(const vector<string>& data) {
     return iv;
 }
 
-
-
-
-
+//tokenize the input file into a vector of vector of strings to make it easier to loop around
 vector<vector<string>> tupp(const string& filename) {
     vector< vector<string>> result;
 
@@ -268,7 +266,7 @@ vector<vector<string>> tupp(const string& filename) {
 
     return result;
 }
-
+//just returns a vector of strings of the desired column from the input file
 vector<string> col(const string& filename, int co) {
     vector<vector<string>> st = tupp(filename);
     int size = st.size();
@@ -280,7 +278,7 @@ vector<string> col(const string& filename, int co) {
 
 }
 
-
+//returns a vector of strings of the desired column p, but this time only when the value in column co matches the string pi
 vector<string> col2(const string& filename, int co, string pi, int p) {
     vector<vector<string>> st = tupp(filename);
     int size = st.size();
@@ -294,7 +292,11 @@ vector<string> col2(const string& filename, int co, string pi, int p) {
 
 }
 
-double info2(const vector<string>& data, int co, int p, vector<string>* vec) {
+//does the same thing as info, but this time we also need to multiply info(Dj) to the prob
+//we get info(Dj) by making a vector of strings for column p that only saves the value when the value for column co is the same
+//then we just take info of that
+//we multiply prob and that info, then do the same for each different string in the class attribute
+double info2(const vector<string>& data, int co, int p) {
     unordered_map<string, int> frequency;
     double result = 0;
     int size = data.size();
@@ -313,14 +315,15 @@ double info2(const vector<string>& data, int co, int p, vector<string>* vec) {
     return result;
 }
 
-double gain(int A, int pi, vector<string>* vec) {
-    double i1 = info2(col(fname, A), A,pi, vec);
+//A is the attribute we want to find the gain of
+//pi is the class attribute
+double gain(int A, int pi) {
+    double i1 = info2(col(fname, A), A,pi);
     double i2 = info(col(fname, pi));
     //cout << i1 << " " << i2;
     double g = i2 - i1;
     return g;
 }
-
 
 int main()
 {
