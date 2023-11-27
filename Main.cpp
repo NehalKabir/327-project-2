@@ -410,7 +410,7 @@ int main()
     myfile.close();
 
   
-    double g = gain(0, 4, vec);
+    double g = gain(0, 4);
     cout << "gain: " << g << endl;
 
 
