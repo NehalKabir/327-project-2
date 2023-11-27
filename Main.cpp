@@ -18,11 +18,11 @@
 
 using namespace std;
 string fname = "agaricus-lepiota.data";
-
-typedef struct {
-    char attributes[MAX_ATTRIBUTES][MAX_LABEL_LEN];
-    char label[MAX_LABEL_LEN];
-} DataPoint;
+int outIndex = 0;
+vector<string> attrList = { "cap-shape", "cap-surface", "cap-color", "bruises?", "odor", "gill-attachment", "gill-spacing", "gill-size",
+                  "gill-color", "stalk-shape", "stalk-root", "stalk-surface-above-ring", "stalk-surface-below-ring",
+                  "stalk-color-above-ring", "stalk-color-below-ring","veil-type","veil-color","ring-number","ring-type",
+                  "spore-print-color","population", "habitat" };
 
 typedef struct TreeNode {
     int attribute_index;
@@ -43,27 +43,28 @@ TreeNode* create_node() {
     }
     return node;
 }
+
 // Function to check if all tuples in D are of the same class
-int are_all_same_class(DataPoint* D, int num_tuples) {
+int are_all_same_class(std::vector<std::tuple<std::string, std::vector<std::string>>>& D) {
     // Implement this function based on your data structure and class representation
     // Return 1 if all tuples are of the same class, 0 otherwise
-    if (num_tuples <= 1) {
-        return 1;//1 or 0 tuples then same class
+    if (D.size() <= 1) {
+        return 1; // 1 or 0 tuples then same class
     }
     // Compare the class label of the first tuple with the class labels of the rest
-    for (int i = 1; i < num_tuples; i++) {
-        if (strcmp(D[0].label, D[i].label) != 0) {
+    for (size_t i = 1; i < D.size(); i++) {
+        if (get<0>(D[0]) != get<0>(D[i])) {
             // If any class label is different, return 0
             return 0;
         }
     }
-    //if all class labels same return 1
+    // if all class labels same return 1
     return 1;
 }
 
 // Function to find the majority class in D
-char find_majority_class(DataPoint* D, int num_tuples) {
-    if (num_tuples <= 0) {
+char find_majority_class(std::vector<std::tuple<std::string, std::vector<std::string>>>& D) {
+    if (D.empty()) {
         // Handle the case when there are no tuples
         // You may return a default or error value based on your requirements
         return '\0'; // Return null character for simplicity
@@ -73,12 +74,12 @@ char find_majority_class(DataPoint* D, int num_tuples) {
     int label_counts[MAX_LABEL_LEN] = { 0 };
 
     // Count the occurrences of each class label
-    for (int i = 0; i < num_tuples; i++) {
-        label_counts[D[i].label[0]]++; // Assuming class labels are single characters
+    for (const auto& tuple : D) {
+        label_counts[get<0>(tuple)[0]]++; // Assuming class labels are single characters
     }
 
     // Find the class label with the maximum count
-    char majority_class = D[0].label[0]; // Default to the first label
+    char majority_class = get<0>(D[0])[0]; // Default to the first label
     int max_count = label_counts[majority_class];
 
     for (int i = 1; i < MAX_LABEL_LEN; i++) {
@@ -89,29 +90,6 @@ char find_majority_class(DataPoint* D, int num_tuples) {
     }
 
     return majority_class;
-}
-
-// Function to implement the decision tree construction algorithm
-TreeNode* generate_decision_tree(DataPoint* D, int num_tuples, int num_attributes) {
-    TreeNode* node = create_node();
-
-    // Step (2): Check if tuples in D are all of the same class
-    if (are_all_same_class(D, num_tuples)) {
-        // Step (3): Return N as a leaf node labeled with the class C
-        node->predicted_label[0] = D[0].label[0];
-        node->predicted_label[1] = '\0'; // Null-terminate the string
-        node->is_leaf = 1;
-        return node;
-    }
-
-    // Step (4): If attribute list is empty
-    if (num_attributes == 0) {
-        // Step (5): Return N as a leaf node labeled with the majority class in D
-        node->predicted_label[0] = find_majority_class(D, num_tuples);
-        node->predicted_label[1] = '\0'; // Null-terminate the string
-        node->is_leaf = 1;
-        return node;
-    }
 }
 
 
@@ -206,6 +184,7 @@ void with_separator(const vector<S>& vec,
     cout << endl;
 }
 
+
 //counts the number of occurences of each string for the column inputed, then divide that by the total line in that column
 //then do that for all the different strings, and add the value together, that is the info
 double info(const vector<string>& data) {
@@ -243,7 +222,7 @@ vector<vector<string>> tupp(const string& filename) {
     // Read each line from the file
     string line;
     while (getline(inputFile, line)) {
-        
+
         string nthString;
         istringstream iss(line);
         vector<string> restOfStrings;
@@ -301,9 +280,9 @@ double info2(const vector<string>& data, int co, int p) {
     double result = 0;
     int size = data.size();
     for (const string& value : data) {
-            frequency[value]++;
-        }
-    
+        frequency[value]++;
+    }
+
     for (const auto& pair : frequency) {
         double prob = static_cast<double>(pair.second) / size;
         vector<string> c2 = col2(fname, co, pair.first, p);
@@ -318,63 +297,116 @@ double info2(const vector<string>& data, int co, int p) {
 //A is the attribute we want to find the gain of
 //pi is the class attribute
 double gain(int A, int pi) {
-    double i1 = info2(col(fname, A), A,pi);
+    double i1 = info2(col(fname, A), A, pi);
     double i2 = info(col(fname, pi));
     //cout << i1 << " " << i2;
     double g = i2 - i1;
     return g;
 }
 
-int main()
-{
-    DataPoint D[MAX_EXAMPLES];  // Sample data
-    int num_tuples = 100;  // Number of tuples in D
-    int num_attributes = 10;  // Number of attributes
-    TreeNode* root = create_node();  // Create the root node
-    root->attribute_index = 0;       // Set the attribute index (for decision)
-    strcpy(root->attribute_value, "Attribute_0_Value");  // Set the attribute value
-
-    // Create left child node and connect it to the root
-    TreeNode* left_child = create_node();
-    left_child->is_leaf = 1;  // For leaf node (final decision)
-    strcpy(left_child->predicted_label, "Label_A");  // Set the predicted label for this leaf node
-
-    // Connect the left child to the root node as the first child
-    root->children[0] = left_child;
-
-    // Create right child node and connect it to the root
-    TreeNode* right_child = create_node();
-    right_child->attribute_index = 1;  // Another attribute index for decision
-    strcpy(right_child->attribute_value, "Attribute_1_Value");  // Set attribute value for this node
-
-    // Connect the right child to the root node as the second child
-    root->children[1] = right_child;
-    print_tree(root, 0);
-    printf(root->children[1]->attribute_value);
-    std::cout << "Hello World!\n";
-
-
-    // Example usage:
-    std::vector<std::tuple<std::string, std::vector<std::string>>> result =
-        getDTuple(fname, 0);
-
-    // Display the result
-    for (const auto& tuple : result) {
-        std::cout << "Nth String: " << std::get<0>(tuple) << ", Rest of Strings: ";
-        for (const auto& str : std::get<1>(tuple)) {
-            std::cout << str << " ";
-        }
-        std::cout << std::endl;
+// Helper function to create branches in the decision tree
+void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes) {
+    // Check if the current node is a leaf node
+    if (node->is_leaf) {
+        return;
     }
 
+    // Get the attribute values for the chosen attribute
+    vector<string> attribute_values = col(fname, node->attribute_index);
+
+    // Create child nodes for each attribute value
+    for (size_t i = 0; i < attribute_values.size(); i++) {
+        TreeNode* child_node = create_node();
+        strcpy(child_node->attribute_value, attribute_values[i].c_str());
+        vector<tuple<string, vector<string>>> subset_D;
+
+        // Populate the subset dataset for the current attribute value
+        for (const auto& tuple : D) {
+            if (get<1>(tuple)[node->attribute_index] == attribute_values[i]) {
+                subset_D.push_back(tuple);
+            }
+        }
+
+        // Check if the subset is empty or if all tuples in the subset have the same class
+        if (subset_D.empty() || are_all_same_class(subset_D)) {
+            // Make the child node a leaf node
+            child_node->is_leaf = 1;
+            if (!subset_D.empty()) {
+                strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
+            }
+        }
+        else {
+            // Recursively create branches for the child node
+            create_branches(child_node, subset_D, num_attributes - 1);
+        }
+
+        // Connect the child node to the current node using array indexing
+        node->children[i] = child_node;
+    }
+}
+
+// Function to implement the decision tree construction algorithm
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList) {
+    TreeNode* node = create_node();
+
+    // Step (2): Check if tuples in D are all of the same class
+    if (are_all_same_class(D)) {
+        // Step (3): Return N as a leaf node labeled with the class C
+        node->predicted_label[0] = get<0>(D[0])[0];
+        node->predicted_label[1] = '\0'; // Null-terminate the string
+        node->is_leaf = 1;
+        return node;
+    }
+
+    // Step (4): If attribute list is empty
+    if (attrList.size() == 0) {
+        // Step (5): Return N as a leaf node labeled with the majority class in D
+        node->predicted_label[0] = find_majority_class(D);
+        node->predicted_label[1] = '\0'; // Null-terminate the string
+        node->is_leaf = 1;
+        return node;
+    }
+    // Choose the best attribute to split on based on information gain
+    double max_information_gain = -1.0;
+    int best_attribute = -1;
+
+    for (int attribute_index = 0; attribute_index < attrList.size(); attribute_index++) {
+        double information_gain = gain(attribute_index, outIndex);
+
+        if (information_gain > max_information_gain) {
+            max_information_gain = information_gain;
+            best_attribute = attribute_index;
+        }
+    }
+
+    // Set the chosen attribute index for the current node
+    node->attribute_index = best_attribute;
+
+    // Create branches for the decision tree
+    create_branches(node, D, attrList.size());
+
+    // ...
+
+    return node;
+}
+
+int main()
+{
+    int num_tuples = 100;  // Number of tuples in D
+    int num_attributes = 10;  // Number of attributes
+
+
+
+    // Create D Tuple
+    vector<tuple<string, vector<string>>> D = getDTuple(fname, outIndex);
+
+    //create vector of attributes
     vector<string> vec[23]; //change depending on the value of attlen (so the number of different attributes)
     ifstream myfile(fname);
 
-    vector<string> v1;
-
     string data;
     getline(myfile, data);
-    char f='\0';
+    char f = '\0';
     int d = strlen(data.c_str());
     int attlen = d / 2 + 1;
     int ff = 0;
@@ -402,17 +434,45 @@ int main()
         ff = 0;
     }
 
-    with_separator(vec[1], ", ");
- 
     getline(myfile, data);
     cout << data << endl;
 
     myfile.close();
 
-  
-    double g = gain(0, 4);
-    cout << "gain: " << g << endl;
-
-
+    TreeNode* DecTree = generate_decision_tree(D, attrList);
 
 }
+
+/* Testing for D tuple
+for (const auto& tuple : result) {
+    std::cout << "Nth String: " << std::get<0>(tuple) << ", Rest of Strings: ";
+    for (const auto& str : std::get<1>(tuple)) {
+        std::cout << str << " ";
+    }
+    std::cout << std::endl;
+}
+*/
+
+/* EXAMPLE NODE CREATION
+TreeNode* root = create_node();  // Create the root node
+root->attribute_index = 0;       // Set the attribute index (for decision)
+strcpy(root->attribute_value, "Attribute_0_Value");  // Set the attribute value
+
+// Create left child node and connect it to the root
+TreeNode* left_child = create_node();
+left_child->is_leaf = 1;  // For leaf node (final decision)
+strcpy(left_child->predicted_label, "Label_A");  // Set the predicted label for this leaf node
+
+// Connect the left child to the root node as the first child
+root->children[0] = left_child;
+
+// Create right child node and connect it to the root
+TreeNode* right_child = create_node();
+right_child->attribute_index = 1;  // Another attribute index for decision
+strcpy(right_child->attribute_value, "Attribute_1_Value");  // Set attribute value for this node
+
+// Connect the right child to the root node as the second child
+root->children[1] = right_child;
+print_tree(root, 0);
+printf(root->children[1]->attribute_value);
+*/
