@@ -38,7 +38,7 @@ typedef struct TreeNode {
 } TreeNode;
 
 void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]);
-TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]);
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23], TreeNode* node);
 
 TreeNode* create_node() {
     TreeNode* node = (TreeNode*)malloc(sizeof(TreeNode));
@@ -528,7 +528,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
         }
         else {
             // Recursively create branches for the child node
-            generate_decision_tree(subset_D, attrList, vec);
+           child_node = generate_decision_tree(subset_D, attrList, vec, child_node);
         }
 
         // Connect the child node to the current node using array indexing
@@ -537,8 +537,8 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
 }
 
 // Function to implement the decision tree construction algorithm
-TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]) {
-    TreeNode* node = create_node();
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23], TreeNode* node) {
+    //TreeNode* node = create_node();
 
     // Step (2): Check if tuples in D are all of the same class
     if (are_all_same_class(D)) {
@@ -639,7 +639,8 @@ int main()
     cout << data << endl;
 
     myfile.close();
-    TreeNode* DecTree = generate_decision_tree(D, attrList, vec);
+    TreeNode* DecTree = create_node();
+    DecTree = generate_decision_tree(D, attrList, vec, DecTree);
     cout << "done" << endl;
 
 }
