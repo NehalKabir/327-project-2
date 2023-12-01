@@ -11,18 +11,23 @@
 #include <vector>
 #include <tuple>
 #include <unordered_map>
+#include <algorithm>
 
 #define MAX_EXAMPLES 100
 #define MAX_ATTRIBUTES 10
 #define MAX_LABEL_LEN 10
 
 using namespace std;
+
+
 string fname = "agaricus-lepiota.data";
 int outIndex = 0;
 vector<string> attrList = { "cap-shape", "cap-surface", "cap-color", "bruises?", "odor", "gill-attachment", "gill-spacing", "gill-size",
                   "gill-color", "stalk-shape", "stalk-root", "stalk-surface-above-ring", "stalk-surface-below-ring",
                   "stalk-color-above-ring", "stalk-color-below-ring","veil-type","veil-color","ring-number","ring-type",
                   "spore-print-color","population", "habitat" };
+
+vector<int> usedAtrributes = {};
 
 typedef struct TreeNode {
     int attribute_index;
@@ -31,6 +36,9 @@ typedef struct TreeNode {
     char predicted_label[MAX_LABEL_LEN];
     struct TreeNode* children[MAX_EXAMPLES]; // For simplicity, assuming each attribute value creates a child node
 } TreeNode;
+
+void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]);
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]);
 
 TreeNode* create_node() {
     TreeNode* node = (TreeNode*)malloc(sizeof(TreeNode));
@@ -309,8 +317,186 @@ double gain(int A, int pi) {
     return g;
 }
 
+bool isAllDigits(const std::string& str) {
+    for (char ch : str) {
+        if (!std::isdigit(ch)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int getAttributeType(const vector<tuple<string, vector<string>>>& D, vector<string>* vec, int best_attribute)
+{
+    string tester = get<1>(D[0])[best_attribute];
+    if (isAllDigits(tester))
+        return 1; // attribute is continous number
+    vector<string> tester2 = with_separator(vec[best_attribute]);
+    if (tester2.size() == 2)
+        return 2; // binary discrete
+    return 3; //discrete
+}
+
+void rem(string s, int col, vector<string>* vec) {
+    int holder = -1;
+    for (int i = 0; i < vec[col].size(); i++) {
+        if (s.compare(vec[col][i]) == 0) {
+            holder = i;
+        }
+    }
+
+    if (holder == -1) {
+        cout << "string not found";
+    }
+    else {
+        vec[col].erase(vec[col].begin() + holder);
+    }
+
+}
+
+void remlist(string s, vector<string>& vec) {
+    int holder = -1;
+    for (int i = 0; i < vec.size(); i++) {
+        if (s.compare(vec[i]) == 0) {
+            holder = i;
+        }
+    }
+    if (holder == -1) {
+        cout << "string not found";
+    }
+    else {
+        vec.erase(vec.begin() + holder);
+    }
+
+}
+
+// Function to find the best split point for a continuous attribute
+double find_best_split_point(const vector<string>& data) {
+    // Convert the string values to double for sorting
+    vector<double> numeric_values;
+    for (const string& value : data) {
+        numeric_values.push_back(stod(value));
+    }
+
+    // Sort the numeric values
+    sort(numeric_values.begin(), numeric_values.end());
+
+    // Initialize variables to keep track of the best split point and information gain
+    double best_split_point = -1.0;
+    double max_information_gain = -1.0;
+
+    // Iterate through the sorted values to find the best split point
+    for (size_t i = 1; i < numeric_values.size(); i++) {
+        double split_point = (numeric_values[i - 1] + numeric_values[i]) / 2.0;
+        vector<string> less_than_split, greater_than_split;
+
+        // Split the data based on the current split point
+        for (const string& value : data) {
+            double numeric_value = stod(value);
+            if (numeric_value <= split_point) {
+                less_than_split.push_back(value);
+            }
+            else {
+                greater_than_split.push_back(value);
+            }
+        }
+
+        // Calculate information gain for the current split point
+        double information_gain = info(data) - (less_than_split.size() / static_cast<double>(data.size())) * info(less_than_split)
+            - (greater_than_split.size() / static_cast<double>(data.size())) * info(greater_than_split);
+
+        // Update the best split point if information gain is greater
+        if (information_gain > max_information_gain) {
+            max_information_gain = information_gain;
+            best_split_point = split_point;
+        }
+    }
+
+    return best_split_point;
+}
+
+// ...
+
+// Helper function to create branches in the decision tree for continuous attributes
+void create_continuous_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes, vector<string> vec[23]) {
+    // Check if the current node is a leaf node
+    if (node->is_leaf) {
+        return;
+    }
+
+    // Get the attribute values for the chosen attribute
+    vector<string> attribute_values = with_separator(vec[node->attribute_index]);
+
+    // Check if the chosen attribute is continuous
+    if (find(attribute_values.begin(), attribute_values.end(), "continuous") != attribute_values.end()) {
+        // Find the best split point for the continuous attribute
+        double split_point = find_best_split_point(col(fname, node->attribute_index));
+
+        // Create child nodes for the two branches (less than and greater than the split point)
+        for (int i = 0; i < 2; i++) {
+            TreeNode* child_node = create_node();
+            vector<tuple<string, vector<string>>> subset_D;
+
+            // Populate the subset dataset for the current branch
+            for (const auto& tuple : D) {
+                double numeric_value = stod(get<1>(tuple)[node->attribute_index]);
+                if ((i == 0 && numeric_value <= split_point) || (i == 1 && numeric_value > split_point)) {
+                    subset_D.push_back(tuple);
+                }
+            }
+
+            // Check if the subset is empty or if all tuples in the subset have the same class
+            if (subset_D.empty() || are_all_same_class(subset_D)) {
+                // Make the child node a leaf node
+                child_node->is_leaf = 1;
+                if (!subset_D.empty()) {
+                    strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
+                }
+            }
+            else {
+                // Recursively create branches for the child node
+                create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
+            }
+
+            // Connect the child node to the current node using array indexing
+            node->children[i] = child_node;
+        }
+    }
+    else {
+        // Create child nodes for each attribute value
+        for (size_t i = 0; i < attribute_values.size(); i++) {
+            TreeNode* child_node = create_node();
+            strcpy(child_node->attribute_value, attribute_values[i].c_str());
+            vector<tuple<string, vector<string>>> subset_D;
+
+            // Populate the subset dataset for the current attribute value
+            for (const auto& tuple : D) {
+                if (get<1>(tuple)[node->attribute_index] == attribute_values[i]) {
+                    subset_D.push_back(tuple);
+                }
+            }
+
+            // Check if the subset is empty or if all tuples in the subset have the same class
+            if (subset_D.empty() || are_all_same_class(subset_D)) {
+                // Make the child node a leaf node
+                child_node->is_leaf = 1;
+                if (!subset_D.empty()) {
+                    strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
+                }
+            }
+            else {
+                // Recursively create branches for the child node
+                create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
+            }
+
+            // Connect the child node to the current node using array indexing
+            node->children[i] = child_node;
+        }
+    }
+}
+
 // Helper function to create branches in the decision tree
-void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes, vector<string> vec[23]) {
+void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]) {
     // Check if the current node is a leaf node
     if (node->is_leaf) {
         return;
@@ -342,7 +528,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
         }
         else {
             // Recursively create branches for the child node
-            create_branches(child_node, subset_D, num_attributes - 1, vec);
+            generate_decision_tree(subset_D, attrList, vec);
         }
 
         // Connect the child node to the current node using array indexing
@@ -374,9 +560,12 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     // Choose the best attribute to split on based on information gain
     double max_information_gain = -1.0;
     int best_attribute = -1;
-
+    double information_gain;
     for (int attribute_index = 0; attribute_index < attrList.size(); attribute_index++) {
-        double information_gain = gain(attribute_index, outIndex);
+        if (find(usedAtrributes.begin(), usedAtrributes.end(), attribute_index) != usedAtrributes.end())
+            information_gain = -2;
+        else
+            information_gain = gain(attribute_index, outIndex);
 
         if (information_gain > max_information_gain) {
             max_information_gain = information_gain;
@@ -384,15 +573,22 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
         }
     }
 
+    cout << "best attribute: " << best_attribute << endl;
     // Set the chosen attribute index for the current node
     node->attribute_index = best_attribute;
-
+    //determine attribute type
+    int attrType = getAttributeType(D, vec, best_attribute);
+    //check for attribute removal
+    if (attrType == 3)
+        usedAtrributes.push_back(best_attribute);
     // Create branches for the decision tree
-    create_branches(node, D, attrList.size(), vec);
+    if (attrType == 1)
+        create_continuous_branches(node, D, attrList.size(), vec);
+    else
+        create_branches(node, D, attrList, vec);
+    if (attrType == 2)
 
-    // ...
-
-    return node;
+        return node;
 }
 
 int main()
@@ -444,6 +640,7 @@ int main()
 
     myfile.close();
     TreeNode* DecTree = generate_decision_tree(D, attrList, vec);
+    cout << "done" << endl;
 
 }
 
