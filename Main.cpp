@@ -20,14 +20,17 @@
 using namespace std;
 
 
-string fname = "car.data";
-int outIndex = 6; //starting at 0
+string fname = "house-votes-84.data";
+int outIndex = 0; //starting at 0
 //vector<string> attrList = { "age", "income", "student", "credit_rating"}; // textbook
 /*vector<string> attrList = {"cap-shape", "cap-surface", "cap-color", "bruises?", "odor", "gill-attachment", "gill-spacing", "gill-size",
                   "gill-color", "stalk-shape", "stalk-root", "stalk-surface-above-ring", "stalk-surface-below-ring",
                   "stalk-color-above-ring", "stalk-color-below-ring","veil-type","veil-color","ring-number","ring-type",
                   "spore-print-color","population", "habitat" };*/ //mushroom
-vector<string> attrList = { "buying", "maint", "doors", "persons", "lug_boot", "safety" };
+//vector<string> attrList = { "buying", "maint", "doors", "persons", "lug_boot", "safety" };
+vector<string> attrList = {"Handicapped - infants", "water-cost-sharing", "adopt-budget-resolution", "phys-fee-freeze", "el-salvador-aid" ,"Religious - groups - in - school",
+                            "anti - satellite - test - ban", "aid - to - nicaraguan - contras","mx - missile", 
+                            "Immigration","synfuel - corporation - cutback","education - spending","superfund - right - to - sue","crime","duty - free - export","export - administration - act - south - africa" };
 vector<int> usedAtrributes = {};
 
 typedef struct TreeNode {
@@ -101,7 +104,7 @@ string find_majority_class(std::vector<std::tuple<std::string, std::vector<std::
 }
 
 void print_tree(TreeNode* node, int level) {
-    if (node == NULL) return;
+    if (node == NULL || (node->is_leaf == 1 && strlen(node->predicted_label) == 0)) return;
 
     for (int i = 0; i < level; i++) {
         printf("| ");
@@ -172,8 +175,11 @@ vector<string> with_separator(const vector<S>& vec,
     vector<string> lst;
     // Iterating over all elements of vector
     for (auto elem : vec) {
-        lst.push_back(elem);
-        cout << elem << sep;
+        if (elem != "?")
+        {
+            lst.push_back(elem);
+            cout << elem << sep;
+        }
     }
 
     cout << endl;
@@ -453,6 +459,7 @@ void create_continuous_branches(TreeNode* node, const vector<tuple<string, vecto
         // Create child nodes for each attribute value
         for (size_t i = 0; i < attribute_values.size(); i++) {
             TreeNode* child_node = create_node();
+            strcpy(child_node->parentResult, attribute_values[i].c_str());
             strcpy(child_node->attribute_value, attribute_values[i].c_str());
             vector<tuple<string, vector<string>>> subset_D;
 
