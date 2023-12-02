@@ -74,36 +74,30 @@ int are_all_same_class(std::vector<std::tuple<std::string, std::vector<std::stri
 }
 
 // Function to find the majority class in D
-string find_majority_class(std::vector<std::tuple<std::string, std::vector<std::string>>>& D, vector<string> vec[100]) {
-    vector<string> classes = with_separator(vec[outIndex]);
-    int n = classes.size();
-    vector<int> counts;
-    if (D.empty()) {
-        // Handle the case when there are no tuples
-        // You may return a default or error value based on your requirements
-        return '\0'; // Return null character for simplicity
+string find_majority_class(std::vector<std::tuple<std::string, std::vector<std::string>>>& D) {
+    // Use an unordered_map to count occurrences of each string
+    std::unordered_map<std::string, int> stringCount;
+
+    // Iterate through the tuple vector
+    for (const auto& myTuple : D) {
+        // Extract the string from the tuple
+        std::string strValue = std::get<0>(myTuple);
+
+        // Increment the count for the string in the map
+        stringCount[strValue]++;
     }
 
-    // Assuming the class labels are strings, you can use an array to store counts
-    int label_counts[MAX_LABEL_LEN] = { 0 };
+    // Find the most frequent string
+    std::string mostFrequentString;
+    int maxCount = 0;
 
-    // Count the occurrences of each class label
-    for (const auto& tuple : D) {
-        label_counts[get<0>(tuple)[0]]++; // Assuming class labels are single characters
-    }
-
-    // Find the class label with the maximum count
-    string majority_class = get<0>(D[0]); // Default to the first label
-    int max_count = label_counts[majority_class];
-
-    for (int i = 1; i < MAX_LABEL_LEN; i++) {
-        if (label_counts[i] > max_count) {
-            majority_class = (char)i;
-            max_count = label_counts[i];
+    for (const auto& entry : stringCount) {
+        if (entry.second > maxCount) {
+            maxCount = entry.second;
+            mostFrequentString = entry.first;
         }
     }
-
-    return majority_class;
+    return mostFrequentString;
 }
 
 void print_tree(TreeNode* node, int level) {
@@ -545,7 +539,7 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     // Step (4): If attribute list is empty
     if (attrList.size() == 0) {
         // Step (5): Return N as a leaf node labeled with the majority class in D
-        node->predicted_label[0] = find_majority_class(D);
+        strcpy(node->predicted_label, find_majority_class(D).c_str());
         node->is_leaf = 1;
         return node;
     }
@@ -568,7 +562,7 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     cout << "best attribute: " << best_attribute << endl;
     if (best_attribute == -1) {
         // Step (5): Return N as a leaf node labeled with the majority class in D
-        node->predicted_label[0] = find_majority_class(D);
+        strcpy(node->predicted_label, find_majority_class(D).c_str());
         node->is_leaf = 1;
         return node;
     }
