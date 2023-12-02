@@ -15,35 +15,38 @@
 
 #define MAX_EXAMPLES 100
 #define MAX_ATTRIBUTES 10
-#define MAX_LABEL_LEN 10
+#define MAX_LABEL_LEN 100
 
 using namespace std;
 
 
-string fname = "agaricus-lepiota.data";
-int outIndex = 0;
-vector<string> attrList = { "cap-shape", "cap-surface", "cap-color", "bruises?", "odor", "gill-attachment", "gill-spacing", "gill-size",
+string fname = "car.data";
+int outIndex = 6; //starting at 0
+//vector<string> attrList = { "age", "income", "student", "credit_rating"}; // textbook
+/*vector<string> attrList = {"cap-shape", "cap-surface", "cap-color", "bruises?", "odor", "gill-attachment", "gill-spacing", "gill-size",
                   "gill-color", "stalk-shape", "stalk-root", "stalk-surface-above-ring", "stalk-surface-below-ring",
                   "stalk-color-above-ring", "stalk-color-below-ring","veil-type","veil-color","ring-number","ring-type",
-                  "spore-print-color","population", "habitat" };
-
+                  "spore-print-color","population", "habitat" };*/ //mushroom
+vector<string> attrList = { "buying", "maint", "doors", "persons", "lug_boot", "safety" };
 vector<int> usedAtrributes = {};
 
 typedef struct TreeNode {
-    int attribute_index;
+    int attribute_index; //index of attribute its children split based off of
     char attribute_value[MAX_LABEL_LEN];
     int is_leaf;
     char predicted_label[MAX_LABEL_LEN];
+    char parentResult[MAX_LABEL_LEN];
     struct TreeNode* children[MAX_EXAMPLES]; // For simplicity, assuming each attribute value creates a child node
 } TreeNode;
 
-void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]);
-TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23], TreeNode* node);
+void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[100]);
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[100], TreeNode* node);
 
 TreeNode* create_node() {
     TreeNode* node = (TreeNode*)malloc(sizeof(TreeNode));
     node->is_leaf = 0;
     node->attribute_index = -1;
+    memset(node->parentResult, 0, sizeof(node->parentResult));
     memset(node->predicted_label, 0, sizeof(node->predicted_label));
     memset(node->attribute_value, 0, sizeof(node->attribute_value));
     for (int i = 0; i < MAX_EXAMPLES; i++) {
@@ -71,7 +74,10 @@ int are_all_same_class(std::vector<std::tuple<std::string, std::vector<std::stri
 }
 
 // Function to find the majority class in D
-char find_majority_class(std::vector<std::tuple<std::string, std::vector<std::string>>>& D) {
+string find_majority_class(std::vector<std::tuple<std::string, std::vector<std::string>>>& D, vector<string> vec[100]) {
+    vector<string> classes = with_separator(vec[outIndex]);
+    int n = classes.size();
+    vector<int> counts;
     if (D.empty()) {
         // Handle the case when there are no tuples
         // You may return a default or error value based on your requirements
@@ -87,7 +93,7 @@ char find_majority_class(std::vector<std::tuple<std::string, std::vector<std::st
     }
 
     // Find the class label with the maximum count
-    char majority_class = get<0>(D[0])[0]; // Default to the first label
+    string majority_class = get<0>(D[0]); // Default to the first label
     int max_count = label_counts[majority_class];
 
     for (int i = 1; i < MAX_LABEL_LEN; i++) {
@@ -100,38 +106,23 @@ char find_majority_class(std::vector<std::tuple<std::string, std::vector<std::st
     return majority_class;
 }
 
-
-void print_node(TreeNode* node, int level) {
-    if (node == NULL) return;
-
-    for (int i = 0; i < level; i++) {
-        printf("| ");
-    }
-
-    if (node->is_leaf) {
-        printf("Predicted Label: %s\n", node->predicted_label);
-    }
-    else {
-        printf("Attribute %d = %s\n", node->attribute_index, node->attribute_value);
-        for (int i = 0; i < 2; i++) {
-            print_node(node->children[i], level + 1);
-        }
-    }
-}
 void print_tree(TreeNode* node, int level) {
     if (node == NULL) return;
 
     for (int i = 0; i < level; i++) {
         printf("| ");
     }
-
+    if (strlen(node->parentResult) != 0)
+        printf("%s: ", node->parentResult);
     if (node->is_leaf) {
         printf("Predicted Label: %s\n", node->predicted_label);
     }
     else {
         printf("Attribute %d = %s\n", node->attribute_index, node->attribute_value);
-        for (int i = 0; i < 2; i++) {
+        int i = 0;
+        while (node->children[i] != NULL) {
             print_tree(node->children[i], level + 1);
+            i++;
         }
     }
 }
@@ -317,10 +308,13 @@ double gain(int A, int pi) {
     return g;
 }
 
-bool isAllDigits(const std::string& str) {
-    for (char ch : str) {
-        if (!std::isdigit(ch)) {
-            return false;
+bool isAllDigits(vector<string> str) {
+    for (string ch : str) {
+        for (char c : ch)
+        {
+            if (!std::isdigit(c)) {
+                return false;
+            }
         }
     }
     return true;
@@ -328,11 +322,10 @@ bool isAllDigits(const std::string& str) {
 
 int getAttributeType(const vector<tuple<string, vector<string>>>& D, vector<string>* vec, int best_attribute)
 {
-    string tester = get<1>(D[0])[best_attribute];
+    vector<string> tester = with_separator(vec[best_attribute]);
     if (isAllDigits(tester))
         return 1; // attribute is continous number
-    vector<string> tester2 = with_separator(vec[best_attribute]);
-    if (tester2.size() == 2)
+    if (tester.size() == 2)
         return 2; // binary discrete
     return 3; //discrete
 }
@@ -418,7 +411,7 @@ double find_best_split_point(const vector<string>& data) {
 // ...
 
 // Helper function to create branches in the decision tree for continuous attributes
-void create_continuous_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes, vector<string> vec[23]) {
+void create_continuous_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, int num_attributes, vector<string> vec[100]) {
     // Check if the current node is a leaf node
     if (node->is_leaf) {
         return;
@@ -496,7 +489,7 @@ void create_continuous_branches(TreeNode* node, const vector<tuple<string, vecto
 }
 
 // Helper function to create branches in the decision tree
-void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23]) {
+void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[100]) {
     // Check if the current node is a leaf node
     if (node->is_leaf) {
         return;
@@ -508,6 +501,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
     // Create child nodes for each attribute value
     for (size_t i = 0; i < attribute_values.size(); i++) {
         TreeNode* child_node = create_node();
+        strcpy(child_node->parentResult, attribute_values[i].c_str());
         strcpy(child_node->attribute_value, attribute_values[i].c_str());
         vector<tuple<string, vector<string>>> subset_D;
 
@@ -537,14 +531,13 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
 }
 
 // Function to implement the decision tree construction algorithm
-TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[23], TreeNode* node) {
+TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[100], TreeNode* node) {
     //TreeNode* node = create_node();
 
     // Step (2): Check if tuples in D are all of the same class
     if (are_all_same_class(D)) {
         // Step (3): Return N as a leaf node labeled with the class C
         node->predicted_label[0] = get<0>(D[0])[0];
-        node->predicted_label[1] = '\0'; // Null-terminate the string
         node->is_leaf = 1;
         return node;
     }
@@ -553,7 +546,6 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     if (attrList.size() == 0) {
         // Step (5): Return N as a leaf node labeled with the majority class in D
         node->predicted_label[0] = find_majority_class(D);
-        node->predicted_label[1] = '\0'; // Null-terminate the string
         node->is_leaf = 1;
         return node;
     }
@@ -574,12 +566,19 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     }
 
     cout << "best attribute: " << best_attribute << endl;
+    if (best_attribute == -1) {
+        // Step (5): Return N as a leaf node labeled with the majority class in D
+        node->predicted_label[0] = find_majority_class(D);
+        node->is_leaf = 1;
+        return node;
+    }
     // Set the chosen attribute index for the current node
     node->attribute_index = best_attribute;
+    strcpy(node->attribute_value, attrList[best_attribute].c_str());
     //determine attribute type
     int attrType = getAttributeType(D, vec, best_attribute);
     //check for attribute removal
-    if (attrType == 3)
+    if (attrType >= 2)
         usedAtrributes.push_back(best_attribute);
     // Create branches for the decision tree
     if (attrType == 1)
@@ -592,16 +591,11 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
 
 int main()
 {
-    int num_tuples = 100;  // Number of tuples in D
-    int num_attributes = 10;  // Number of attributes
-
-
-
     // Create D Tuple
     vector<tuple<string, vector<string>>> D = getDTuple(fname, outIndex);
 
     //create vector of attributes
-    vector<string> vec[23]; //change depending on the value of attlen (so the number of different attributes)
+    vector<string> vec[100]; //change depending on the value of attlen (so the number of different attributes)
     ifstream myfile(fname);
 
     string data;
@@ -613,6 +607,7 @@ int main()
     myfile.seekg(0);
 
     while (getline(myfile, data)) {
+        int d = strlen(data.c_str());
         for (int i = 0; i < d; i++) {
             string temp = "";
             string w;
@@ -639,7 +634,10 @@ int main()
 
     myfile.close();
     TreeNode* DecTree = create_node();
+    string rt = "root";
+    strcpy(DecTree->parentResult, rt.c_str());
     DecTree = generate_decision_tree(D, attrList, vec, DecTree);
+    print_tree(DecTree, 0);
     cout << "done" << endl;
 
 }
