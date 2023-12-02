@@ -586,9 +586,8 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
         create_continuous_branches(node, D, attrList.size(), vec);
     else
         create_branches(node, D, attrList, vec);
-    if (attrType == 2)
 
-        return node;
+   return node;
 }
 
 int main()
