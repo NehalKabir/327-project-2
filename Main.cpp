@@ -418,10 +418,10 @@ void create_continuous_branches(TreeNode* node, const vector<tuple<string, vecto
     }
 
     // Get the attribute values for the chosen attribute
-    vector<string> attribute_values = with_separator(vec[node->attribute_index]);
+     vector<string> attribute_values = with_separator(vec[node->attribute_index]);
 
     // Check if the chosen attribute is continuous
-    if (find(attribute_values.begin(), attribute_values.end(), "continuous") != attribute_values.end()) {
+   
         // Find the best split point for the continuous attribute
         double split_point = find_best_split_point(col(fname, node->attribute_index));
 
@@ -448,45 +448,45 @@ void create_continuous_branches(TreeNode* node, const vector<tuple<string, vecto
             }
             else {
                 // Recursively create branches for the child node
-                create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
+                child_node = generate_decision_tree(subset_D, attrList, vec, child_node);
             }
 
             // Connect the child node to the current node using array indexing
             node->children[i] = child_node;
         }
-    }
-    else {
-        // Create child nodes for each attribute value
-        for (size_t i = 0; i < attribute_values.size(); i++) {
-            TreeNode* child_node = create_node();
-            strcpy(child_node->parentResult, attribute_values[i].c_str());
-            strcpy(child_node->attribute_value, attribute_values[i].c_str());
-            vector<tuple<string, vector<string>>> subset_D;
+    
+    
+        //// Create child nodes for each attribute value
+        //for (size_t i = 0; i < attribute_values.size(); i++) {
+        //    TreeNode* child_node = create_node();
+        //    strcpy(child_node->parentResult, attribute_values[i].c_str());
+        //    strcpy(child_node->attribute_value, attribute_values[i].c_str());
+        //    vector<tuple<string, vector<string>>> subset_D;
 
-            // Populate the subset dataset for the current attribute value
-            for (const auto& tuple : D) {
-                if (get<1>(tuple)[node->attribute_index] == attribute_values[i]) {
-                    subset_D.push_back(tuple);
-                }
-            }
+        //    // Populate the subset dataset for the crrent attribute value
+        //    for (const auto& tuple : D) {
+        //        if (get<1>(tuple)[node->attribute_index] == attribute_values[i]) {
+        //            subset_D.push_back(tuple);
+        //        }
+        //    }
 
-            // Check if the subset is empty or if all tuples in the subset have the same class
-            if (subset_D.empty() || are_all_same_class(subset_D)) {
-                // Make the child node a leaf node
-                child_node->is_leaf = 1;
-                if (!subset_D.empty()) {
-                    strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
-                }
-            }
-            else {
-                // Recursively create branches for the child node
-                create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
-            }
+        //    // Check if the subset is empty or if all tuples in the subset have the same class
+        //    if (subset_D.empty() || are_all_same_class(subset_D)) {
+        //        // Make the child node a leaf node
+        //        child_node->is_leaf = 1;
+        //        if (!subset_D.empty()) {
+        //            strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
+        //        }
+        //    }
+        //    else {
+        //        // Recursively create branches for the child node
+        //        create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
+        //    }
 
-            // Connect the child node to the current node using array indexing
-            node->children[i] = child_node;
-        }
-    }
+        //    // Connect the child node to the current node using array indexing
+        //    node->children[i] = child_node;
+        //}
+    
 }
 
 // Helper function to create branches in the decision tree
