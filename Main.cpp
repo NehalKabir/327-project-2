@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <algorithm>
 
+#pragma warning(disable : 4996)
+
 #define MAX_EXAMPLES 100
 #define MAX_ATTRIBUTES 10
 #define MAX_LABEL_LEN 100
@@ -20,17 +22,18 @@
 using namespace std;
 
 
-string fname = "house-votes-84.data";
+string fname = "Wholesale_customers_data.data";
 int outIndex = 0; //starting at 0
+vector<string> attrList = { "Region","Fresh","Milk","Grocery","Frozen","Detergents_Paper","Delicassen" }; //Wholesale_customers_data.data
 //vector<string> attrList = { "age", "income", "student", "credit_rating"}; // textbook
 /*vector<string> attrList = {"cap-shape", "cap-surface", "cap-color", "bruises?", "odor", "gill-attachment", "gill-spacing", "gill-size",
                   "gill-color", "stalk-shape", "stalk-root", "stalk-surface-above-ring", "stalk-surface-below-ring",
                   "stalk-color-above-ring", "stalk-color-below-ring","veil-type","veil-color","ring-number","ring-type",
                   "spore-print-color","population", "habitat" };*/ //mushroom
-//vector<string> attrList = { "buying", "maint", "doors", "persons", "lug_boot", "safety" };
-vector<string> attrList = {"Handicapped - infants", "water-cost-sharing", "adopt-budget-resolution", "phys-fee-freeze", "el-salvador-aid" ,"Religious - groups - in - school",
-                            "anti - satellite - test - ban", "aid - to - nicaraguan - contras","mx - missile", 
-                            "Immigration","synfuel - corporation - cutback","education - spending","superfund - right - to - sue","crime","duty - free - export","export - administration - act - south - africa" };
+                  //vector<string> attrList = { "buying", "maint", "doors", "persons", "lug_boot", "safety" };
+/*vector<string> attrList = {"Handicapped - infants", "water-cost-sharing", "adopt-budget-resolution", "phys-fee-freeze", "el-salvador-aid" ,"Religious - groups - in - school",
+                            "anti - satellite - test - ban", "aid - to - nicaraguan - contras","mx - missile",
+                            "Immigration","synfuel - corporation - cutback","education - spending","superfund - right - to - sue","crime","duty - free - export","export - administration - act - south - africa" };*/
 vector<int> usedAtrributes = {};
 
 typedef struct TreeNode {
@@ -178,11 +181,11 @@ vector<string> with_separator(const vector<S>& vec,
         if (elem != "?")
         {
             lst.push_back(elem);
-            cout << elem << sep;
+            //cout << elem << sep;
         }
     }
 
-    cout << endl;
+    //cout << endl;
     return lst;
 }
 
@@ -298,11 +301,11 @@ double info2(const vector<string>& data, int co, int p) {
 
 //A is the attribute we want to find the gain of
 //pi is the class attribute
-double gain(int A, int pi) {
+double gain(int A, int pi, vector<string> c) {
     if (A == pi)
         return -2;
-    double i1 = info2(col(fname, A), A, pi);
-    double i2 = info(col(fname, pi));
+    double i1 = info2(c, A, pi);
+    double i2 = info(c);
     //cout << i1 << " " << i2;
     double g = i2 - i1;
     return g;
@@ -417,76 +420,85 @@ void create_continuous_branches(TreeNode* node, const vector<tuple<string, vecto
         return;
     }
 
-    // Get the attribute values for the chosen attribute
-     vector<string> attribute_values = with_separator(vec[node->attribute_index]);
+    vector<string> splitVec;
+    for (const auto& tuple : D) {
+        splitVec.push_back(std::get<1>(tuple)[node->attribute_index]);
+    }
 
-    // Check if the chosen attribute is continuous
-   
-        // Find the best split point for the continuous attribute
-        double split_point = find_best_split_point(col(fname, node->attribute_index));
-
-        // Create child nodes for the two branches (less than and greater than the split point)
-        for (int i = 0; i < 2; i++) {
-            TreeNode* child_node = create_node();
-            vector<tuple<string, vector<string>>> subset_D;
-
-            // Populate the subset dataset for the current branch
-            for (const auto& tuple : D) {
-                double numeric_value = stod(get<1>(tuple)[node->attribute_index]);
-                if ((i == 0 && numeric_value <= split_point) || (i == 1 && numeric_value > split_point)) {
-                    subset_D.push_back(tuple);
-                }
-            }
-
-            // Check if the subset is empty or if all tuples in the subset have the same class
-            if (subset_D.empty() || are_all_same_class(subset_D)) {
-                // Make the child node a leaf node
-                child_node->is_leaf = 1;
-                if (!subset_D.empty()) {
-                    strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
-                }
-            }
-            else {
-                // Recursively create branches for the child node
-                child_node = generate_decision_tree(subset_D, attrList, vec, child_node);
-            }
-
-            // Connect the child node to the current node using array indexing
-            node->children[i] = child_node;
+    // Find the best split point for the continuous attribute
+    double split_point = find_best_split_point(splitVec);
+    string tmp;
+    cout << "Split point: " << split_point << endl;
+    // Create child nodes for the two branches (less than and greater than the split point)
+    for (int i = 0; i < 2; i++) {
+        TreeNode* child_node = create_node();
+        if (i == 0)
+        {
+            tmp = "<" + to_string(split_point);
         }
-    
-    
-        //// Create child nodes for each attribute value
-        //for (size_t i = 0; i < attribute_values.size(); i++) {
-        //    TreeNode* child_node = create_node();
-        //    strcpy(child_node->parentResult, attribute_values[i].c_str());
-        //    strcpy(child_node->attribute_value, attribute_values[i].c_str());
-        //    vector<tuple<string, vector<string>>> subset_D;
+        else
+            tmp = ">" + to_string(split_point);
+        strcpy(child_node->parentResult, tmp.c_str());
+        strcpy(child_node->attribute_value, tmp.c_str());
+        vector<tuple<string, vector<string>>> subset_D;
 
-        //    // Populate the subset dataset for the crrent attribute value
-        //    for (const auto& tuple : D) {
-        //        if (get<1>(tuple)[node->attribute_index] == attribute_values[i]) {
-        //            subset_D.push_back(tuple);
-        //        }
-        //    }
+        // Populate the subset dataset for the current branch
+        for (const auto& tuple : D) {
+            double numeric_value = stod(get<1>(tuple)[node->attribute_index]);
+            if ((i == 0 && numeric_value <= split_point) || (i == 1 && numeric_value > split_point)) {
+                subset_D.push_back(tuple);
+            }
+        }
 
-        //    // Check if the subset is empty or if all tuples in the subset have the same class
-        //    if (subset_D.empty() || are_all_same_class(subset_D)) {
-        //        // Make the child node a leaf node
-        //        child_node->is_leaf = 1;
-        //        if (!subset_D.empty()) {
-        //            strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
-        //        }
-        //    }
-        //    else {
-        //        // Recursively create branches for the child node
-        //        create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
-        //    }
+        // Check if the subset is empty or if all tuples in the subset have the same class
+        if (subset_D.empty() || are_all_same_class(subset_D)) {
+            // Make the child node a leaf node
+            child_node->is_leaf = 1;
+            if (!subset_D.empty()) {
+                strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
+            }
+        }
+        else {
+            // Recursively create branches for the child node
+            child_node = generate_decision_tree(subset_D, attrList, vec, child_node);
+        }
 
-        //    // Connect the child node to the current node using array indexing
-        //    node->children[i] = child_node;
-        //}
-    
+        // Connect the child node to the current node using array indexing
+        node->children[i] = child_node;
+    }
+
+
+    //// Create child nodes for each attribute value
+    //for (size_t i = 0; i < attribute_values.size(); i++) {
+    //    TreeNode* child_node = create_node();
+    //    strcpy(child_node->parentResult, attribute_values[i].c_str());
+    //    strcpy(child_node->attribute_value, attribute_values[i].c_str());
+    //    vector<tuple<string, vector<string>>> subset_D;
+
+    //    // Populate the subset dataset for the crrent attribute value
+    //    for (const auto& tuple : D) {
+    //        if (get<1>(tuple)[node->attribute_index] == attribute_values[i]) {
+    //            subset_D.push_back(tuple);
+    //        }
+    //    }
+
+    //    // Check if the subset is empty or if all tuples in the subset have the same class
+    //    if (subset_D.empty() || are_all_same_class(subset_D)) {
+    //        // Make the child node a leaf node
+    //        child_node->is_leaf = 1;
+    //        if (!subset_D.empty()) {
+    //            strcpy(child_node->predicted_label, get<0>(subset_D[0]).c_str());
+    //        }
+    //    }
+    //    else {
+    //        // Recursively create branches for the child node
+    //        create_continuous_branches(child_node, subset_D, num_attributes - 1, vec);
+    //    }
+
+    //    // Connect the child node to the current node using array indexing
+    //    node->children[i] = child_node;
+    //}
+
 }
 
 // Helper function to create branches in the decision tree
@@ -523,7 +535,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
         }
         else {
             // Recursively create branches for the child node
-           child_node = generate_decision_tree(subset_D, attrList, vec, child_node);
+            child_node = generate_decision_tree(subset_D, attrList, vec, child_node);
         }
 
         // Connect the child node to the current node using array indexing
@@ -534,6 +546,7 @@ void create_branches(TreeNode* node, const vector<tuple<string, vector<string>>>
 // Function to implement the decision tree construction algorithm
 TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vector<string> attrList, vector<string> vec[100], TreeNode* node) {
     //TreeNode* node = create_node();
+    vector<string> splitVec;
 
     // Step (2): Check if tuples in D are all of the same class
     if (are_all_same_class(D)) {
@@ -558,8 +571,13 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
         if (find(usedAtrributes.begin(), usedAtrributes.end(), attribute_index) != usedAtrributes.end())
             information_gain = -2;
         else
-            information_gain = gain(attribute_index, outIndex);
-
+        {
+            splitVec.clear();
+            for (const auto& tuple : D) {
+                splitVec.push_back(std::get<1>(tuple)[attribute_index]);
+            }
+            information_gain = gain(attribute_index, outIndex, splitVec);
+        }
         if (information_gain > max_information_gain) {
             max_information_gain = information_gain;
             best_attribute = attribute_index;
@@ -579,7 +597,7 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     //determine attribute type
     int attrType = getAttributeType(D, vec, best_attribute);
     //check for attribute removal
-    if (attrType >= 2)
+    //if (attrType >= 2)
         usedAtrributes.push_back(best_attribute);
     // Create branches for the decision tree
     if (attrType == 1)
@@ -587,7 +605,7 @@ TreeNode* generate_decision_tree(vector<tuple<string, vector<string>>>& D, vecto
     else
         create_branches(node, D, attrList, vec);
 
-   return node;
+    return node;
 }
 
 int main()
